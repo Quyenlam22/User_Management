@@ -1,9 +1,9 @@
-import './style.css'
-import AdminUser from './classes/admin-user.class.ts';
-import UserAccount from './classes/user-account.class.ts';
-import type { User } from './models/user.interface.ts';
-import { createUser } from './utils/createUser.ts';
-import { formatUserInfo } from './utils/formatUserInfo.ts';
+import "./style.css";
+import AdminUser from "./classes/admin-user.class.ts";
+import UserAccount from "./classes/user-account.class.ts";
+import type { User } from "./models/user.interface.ts";
+import { createUser } from "./utils/createUser.ts";
+import { formatUserInfo } from "./utils/formatUserInfo.ts";
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <div class="container">
@@ -97,6 +97,22 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 
     <div id="userInfo" class="my-4 font-semibold text-lg"></div>
 
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y-2 divide-gray-200">
+        <thead>
+          <tr class="*:font-medium *:text-gray-900">
+            <th class="px-3 py-2 whitespace-nowrap">ID</th>
+            <th class="px-3 py-2 whitespace-nowrap">Username</th>
+            <th class="px-3 py-2 whitespace-nowrap">Email</th>
+            <th class="px-3 py-2 whitespace-nowrap">isActive</th>
+            <th class="px-3 py-2 whitespace-nowrap">Role</th>
+          </tr>
+        </thead>
+
+        <tbody id="userTableBody" class="divide-y divide-gray-200 *:even:bg-gray-50">
+        </tbody>
+      </table>
+    </div>
   </div>
 `;
 
@@ -104,6 +120,42 @@ const form = document.getElementById("userForm") as HTMLFormElement;
 // const emailInput = document.querySelector("#email") as HTMLInputElement;
 const alertMessage = document.querySelector(".alert") as HTMLDivElement;
 const userInfo = document.getElementById("userInfo") as HTMLDivElement;
+const tableBody = document.getElementById(
+  "userTableBody"
+) as HTMLTableSectionElement;
+
+const render = () => {
+  const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
+  if (storedUsers.length > 0) {
+    const noDataRow = document.getElementById("no-data-row");
+    if (noDataRow) noDataRow.remove();
+
+    storedUsers.forEach((user: User) => {
+      const tr = document.createElement("tr");
+      tr.className = "*:text-gray-900 *:first:font-medium";
+      tr.innerHTML = `
+        <td class="px-2 py-2 whitespace-nowrap">${user.id}</td>
+        <td class="px-2 py-2 whitespace-nowrap">${user.username}</td>
+        <td class="px-2 py-2 whitespace-nowrap">${user.email}</td>
+        <td class="px-2 py-2 whitespace-nowrap">${user.isActive ? "Active" : "Inactive"}</td>
+        <td class="px-2 py-2 whitespace-nowrap capitalize">${user.role}</td>
+      `;
+      tableBody.appendChild(tr);
+    });
+  }
+  else {
+    const row = document.createElement("tr");
+    row.id = "no-data-row";
+    row.innerHTML = `
+      <td colspan="5" class="text-center py-4 text-gray-500 italic text-xl">
+        No Data
+      </td>
+    `;
+    tableBody.appendChild(row);
+  }
+};
+
+render();
 
 form.onsubmit = (e: SubmitEvent) => {
   e.preventDefault();
@@ -138,19 +190,25 @@ form.onsubmit = (e: SubmitEvent) => {
       </div>
     </div>
     `;
-  }
-  else {
+  } else {
     const newUser: Partial<User> = {
+      id: Date.now(),
       username: username,
       // email: emailInput.value,
       email: email,
       role: role as "admin" | "user" | "guest",
+      isActive: user.isActive ?? true,
     };
     console.log(createUser(newUser));
 
     userInfo.textContent = formatUserInfo(user);
 
     form.reset();
+
+    const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
+    storedUsers.push(newUser);
+    localStorage.setItem("users", JSON.stringify(storedUsers));
+
     alertMessage.innerHTML = `
       <div role="alert" class="fixed z-999 rounded-md border border-gray-300 bg-white py-4 px-8 shadow-sm">
         <div class="flex gap-4">
@@ -173,15 +231,35 @@ form.onsubmit = (e: SubmitEvent) => {
           </div>
         </div>
       </div>
-    `
+    `;
+
+    const tr = document.createElement("tr");
+    tr.className = "*:text-gray-900 *:first:font-medium";
+
+    tr.innerHTML = `
+      <td class="px-2 py-2 whitespace-nowrap">${newUser.id}</td>
+      <td class="px-2 py-2 whitespace-nowrap">${newUser.username}</td>
+      <td class="px-2 py-2 whitespace-nowrap">${newUser.email}</td>
+      <td class="px-2 py-2 whitespace-nowrap">${
+        newUser.isActive ? "Active" : "Inactive"
+      }</td>
+      <td class="px-2 py-2 whitespace-nowrap capitalize">${newUser.role}</td>
+    `;
+
+    const noDataRow = document.getElementById("no-data-row");
+    if (noDataRow) {
+      noDataRow.remove();
+    }
+
+    tableBody.appendChild(tr);
   }
   setTimeout(() => {
-  const alertDiv = alertMessage.querySelector("div");
-  if (alertDiv) {
-    alertDiv.classList.add("fade-out"); // Thêm class mờ dần
-    setTimeout(() => {
-      alertMessage.innerHTML = ""; // Xóa sau khi mờ
-    }, 500); // Chờ hiệu ứng mờ chạy xong (500ms)
-  }
-}, 1500);
+    const alertDiv = alertMessage.querySelector("div");
+    if (alertDiv) {
+      alertDiv.classList.add("fade-out"); 
+      setTimeout(() => {
+        alertMessage.innerHTML = ""; 
+      }, 500); 
+    }
+  }, 1500);
 };
